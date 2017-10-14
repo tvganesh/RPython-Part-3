@@ -72,7 +72,7 @@ for(i in 1:6){
 val.errors
 which.min(val.errors)
 
-# Forward selection
+# Backward selection
 regfit.bwd=regsubsets(mpg~.,data=train,method="backward")
 val.errors=rep(NA,6)
 for(i in 1:6){
@@ -115,3 +115,27 @@ plot(regfit.full,scale="adjr2")
 plot(regfit.full,scale="Cp")
 plot(regfit.full,scale="bic")
 coef(regfit.full,6)
+
+# Forward selection
+regfit.fwd=regsubsets(medv~.,data=train,nvmax=14,method="forward")
+val.errors=rep(NA,14)
+test.mat=model.matrix(medv~.,data=test)
+for(i in 1:14){
+    coefi=coef(regfit.fwd,id=i)
+    pred=test.mat[,names(coefi)]%*%coefi
+    val.errors[i]=mean((test$medv-pred)^2)
+}
+val.errors
+which.min(val.errors)
+
+# Backward selection
+regfit.bwd=regsubsets(medv~.,data=train,nvmax=14,method="backward")
+val.errors=rep(NA,6)
+test.mat=model.matrix(medv~.,data=test)
+for(i in 1:6){
+    coefi=coef(regfit.bwd,id=i)
+    pred=test.mat[,names(coefi)]%*%coefi
+    val.errors[i]=mean((test$medv-pred)^2)
+}
+val.errors
+which.min(val.errors)
