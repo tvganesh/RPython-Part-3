@@ -49,6 +49,28 @@ for(i in 1:14){
     val.errors[i]=mean((test$medv-pred)^2)
 }
 
+k = 10
+set.seed(1)
+folds = sample(1:k, nrow(df), replace=TRUE) 
+# if an observation is labelled 'i', it will be part of the i-th fold.
+# e.g. an observation that is labelled 3 will be left out of the 3rd round of cross validation
+cv.errors = matrix(NA,k,13, dimnames=list(NULL, paste(1:8)))
+# sets up a k by 13 matrix filled with NA's. 
+# columns are named 1 to 14
+
+# armed with our new predict() method, we can:
+for (j in 1:k) {
+    # obtain the required coefficients
+    fitFwd=regsubsets(medv~.,data=train,nvmax=14,method="forward")
+    # note: if you have more than 8 variables you will need to specify nvmax in the above command
+    for (i in 1:14) {
+        # now, calculate MSE using the i-th fold
+        pred <- predict(best.fit, autosmall[folds == j,],id=i)
+        # since best.fit is of class regsubsets, the predict command that was created will work on it.
+        cv.errors[j,i] <- mean((autosmall$price[folds == j] - pred)^2)
+    }
+}
+(mean.cv.errors <- apply(cv.errors,2,mean))
 
 val.errors
 which.min(val.errors)
@@ -71,3 +93,19 @@ which.min(val.errors)
 regBwd.summary=summary(regfit.bwd)
 plot(regBwd.summary$rss,xlab="Number of Variables",ylab="RSS",type="l")
 plot(regBwd.summary$adjr2,xlab="Number of Variables",ylab="Adjusted RSq",type="l")
+
+
+#############################K-fold
+k = 5
+set.seed(1)
+folds = sample(1:k, nrow(df), replace=TRUE) 
+rows=folds==2
+df1<-df[rows,]
+rows=folds==3
+df2<-df[rows,]
+fitFwd=regsubsets(medv~.,data=df[folds!=3,],nvmax=14,method="forward")
+coefi=coef(fitFwd,id=2)
+test=df[folds==3,]
+test.mat=model.matrix(medv~.,data=test)
+pred=test.mat[,names(coefi)]%*%coefi
+mean((test$medv - pred)^2)
