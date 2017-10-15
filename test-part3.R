@@ -127,6 +127,9 @@ for(i in 1:14){
 }
 val.errors
 which.min(val.errors)
+regFwd.summary=summary(regfit.fwd)
+plot(regFwd.summary$rss,xlab="Number of Variables",ylab="RSS",type="l")
+plot(regFwd.summary$adjr2,xlab="Number of Variables",ylab="Adjusted RSq",type="l")
 
 # Backward selection
 regfit.bwd=regsubsets(medv~.,data=train,nvmax=14,method="backward")
@@ -139,3 +142,7 @@ for(i in 1:6){
 }
 val.errors
 which.min(val.errors)
+
+regBwd.summary=summary(regfit.bwd)
+plot(regBwd.summary$rss,xlab="Number of Variables",ylab="RSS",type="l")
+plot(regBwd.summary$adjr2,xlab="Number of Variables",ylab="Adjusted RSq",type="l")
