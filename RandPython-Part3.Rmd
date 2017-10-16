@@ -70,12 +70,12 @@ df = pd.read_csv("Boston.csv",encoding = "ISO-8859-1")
 df.columns=["no","crimeRate","zone","indus","chasRiver","NO2","rooms","age",
               "distances","idxHighways","taxRate","teacherRatio","color","status","cost"]
 X=df[["crimeRate","zone","indus","chasRiver","NO2","rooms","age",
-              "distances","idxHighways","taxRate","teacherRatio","color","status","cost"]]
+              "distances","idxHighways","taxRate","teacherRatio","color","status"]]
 y=df['cost']
 lr = LinearRegression()
 
 sfs = SFS(lr, 
-          k_features=(1,14), 
+          k_features=(1,13), 
           forward=True, 
           floating=False, 
           scoring='neg_mean_squared_error',
@@ -101,6 +101,5 @@ fig2=plt.title('Best Forward Selection (w. StdErr)')
 fig2.figure.savefig('fig2.png', bbox_inches='tight')
 print(pd.DataFrame.from_dict(sfs.get_metric_dict(confidence_interval=0.90)).T)
 ```
-#![output](fig1.png)
-
+![output](fig1.png)
 ![output](fig2.png)
