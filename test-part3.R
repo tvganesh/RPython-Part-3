@@ -1,6 +1,4 @@
 source('RFunctions-1.R')
-
-#############################################################################
 #Boston
 library(leaps)
 library(boot)
@@ -21,20 +19,24 @@ reg.summary$rsq
 
 plot(reg.summary$rss,xlab="Number of Variables",ylab="RSS",type="l")
 plot(reg.summary$adjr2,xlab="Number of Variables",ylab="Adjusted RSq",type="l")
-which.max(reg.summary$adjr2)
-points(11,reg.summary$adjr2[11], col="red",cex=2,pch=20)
+a=which.max(reg.summary$adjr2)
+points(a,reg.summary$adjr2[a], col="red",cex=2,pch=20)
 plot(reg.summary$cp,xlab="Number of Variables",ylab="Cp",type='l')
-which.min(reg.summary$cp)
-points(10,reg.summary$cp[10],col="red",cex=2,pch=20)
-which.min(reg.summary$bic)
+b=which.min(reg.summary$cp)
+points(b,reg.summary$cp[b],col="red",cex=2,pch=20)
+c=which.min(reg.summary$bic)
 plot(reg.summary$bic,xlab="Number of Variables",ylab="BIC",type='l')
-points(6,reg.summary$bic[6],col="red",cex=2,pch=20)
+points(c,reg.summary$bic[c],col="red",cex=2,pch=20)
 plot(regfit.full,scale="r2")
 plot(regfit.full,scale="adjr2")
 plot(regfit.full,scale="Cp")
 plot(regfit.full,scale="bic")
-coef(regfit.full,6)
+coef(regfit.full,14)
 
+b=sqrt(reg.summary$rss/378)
+plot(seq(1,14),b,type="b")
+
+plot(c(1,4),b)
 # Forward selection
 #http://rbyexamples.blogspot.in/2015/07/linear-regression.html
 fitFwd=regsubsets(medv~.,data=train,nvmax=14,method="forward")
