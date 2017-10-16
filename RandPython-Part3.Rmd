@@ -103,3 +103,59 @@ print(pd.DataFrame.from_dict(sfs.get_metric_dict(confidence_interval=0.90)).T)
 ```
 ![output](fig1.png)
 ![output](fig2.png)
+
+```{r}
+library(dplyr)
+df=read.csv("Boston.csv",stringsAsFactors = FALSE) # Data from MASS - SL
+names(df) <-c("no","crimeRate","zone","indus","charles","nox","rooms","age",
+              "distances","highways","tax","teacherRatio","color","status","cost")
+
+# Select columns
+df1 <- df %>% dplyr::select("crimeRate","zone","indus","charles","nox","rooms","age",
+                     "distances","highways","tax","teacherRatio","color","status","cost")
+
+set.seed(6)
+# Set max number of features
+nvmax<-13
+cvError <- NULL
+# Loop through each features
+for(i in 1:nvmax){
+    # Set no of folds
+    noFolds=5
+    # Create the rows which fall into different folds from 1..noFolds
+    folds = sample(1:noFolds, nrow(df1), replace=TRUE) 
+    cv<-0
+    for(j in 1:noFolds){
+        # The training is all rows for which the row is != j 
+        train <- df1[folds!=j,]
+        # The rows which have j as the index become the test set
+        test <- df1[folds==j,]
+        # Create a forward fitting model for this
+        fitFwd=regsubsets(cost~.,data=train,nvmax=13,method="forward")
+        # Select the number of features and get the feature coefficients
+        coefi=coef(fitFwd,id=i)
+        #Get the value of the test data
+        test.mat=model.matrix(cost~.,data=test)
+        # Multiply the tes data with teh fitted coefficients to get the predicted value
+        # pred = b0 + b1x1+b2x2... b13x13
+        pred=test.mat[,names(coefi)]%*%coefi
+        # Compute mean squared error
+        rss=mean((test$cost - pred)^2)
+        cv=cv+rss
+    }
+    # Compute the average of MSE for K folds for number of features 'i'
+    cvError[i]=cv/noFolds
+}
+a <- seq(1,13)
+d <- as.data.frame(t(rbind(a,cvError)))
+names(d) <- c("Features","CVError")
+ggplot(d,aes(x=Features,y=CVError),color="blue") + geom_point() + geom_line(color="blue") +
+    xlab("No of features") + ylab("Cross Validation Error") +
+    ggtitle("Forward Selection - Cross Valdation Error vs No of Features")
+
+
+```
+
+
+The Cross validation error for SFS in Sklearn is negative, possibly because it computes
+teh 'neg_mean_squared_error'

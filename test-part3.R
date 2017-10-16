@@ -2,6 +2,7 @@ source('RFunctions-1.R')
 #Boston
 library(leaps)
 library(boot)
+library(dplyr)
 df=read.csv("Boston.csv",stringsAsFactors = FALSE) # Data from MASS - SL
 names(df) <-c("crimeRate","zone","indus","charles","nox","rooms","age",
               "distances","highways","tax","teacherRatio","color","status","cost")
@@ -10,10 +11,10 @@ train <- df[train_idx, ]
 test <- df[-train_idx, ]
 
 # Fit the 
-fit <- lm(medv~. ,data=train)
+fit <- lm(cost~. ,data=train)
 summary(fit)
 
-# Best fit
+di# Best fit
 regfit.full=regsubsets(medv~.,train,nvmax=14)
 reg.summary=summary(regfit.full)
 names(reg.summary)
@@ -100,16 +101,55 @@ plot(regBwd.summary$adjr2,xlab="Number of Variables",ylab="Adjusted RSq",type="l
 
 
 #############################K-fold
-k = 5
+df=read.csv("Boston.csv",stringsAsFactors = FALSE) # Data from MASS - SL
+names(df) <-c("crimeRate","zone","indus","charles","nox","rooms","age",
+              "distances","highways","tax","teacherRatio","color","status","cost")
 set.seed(1)
+k = 5
 folds = sample(1:k, nrow(df), replace=TRUE) 
 rows=folds==2
 df1<-df[rows,]
 rows=folds==3
 df2<-df[rows,]
-fitFwd=regsubsets(medv~.,data=df[folds!=3,],nvmax=14,method="forward")
+fitFwd=regsubsets(cost~.,data=df[folds!=3,],nvmax=14,method="forward")
 coefi=coef(fitFwd,id=2)
 test=df[folds==3,]
 test.mat=model.matrix(medv~.,data=test)
 pred=test.mat[,names(coefi)]%*%coefi
 mean((test$medv - pred)^2)
+
+
+
+df=read.csv("Boston.csv",stringsAsFactors = FALSE) # Data from MASS - SL
+names(df) <-c("no","crimeRate","zone","indus","charles","nox","rooms","age",
+              "distances","highways","tax","teacherRatio","color","status","cost")
+df1 <- df %>% dplyr::select("crimeRate","zone","indus","charles","nox","rooms","age",
+                     "distances","highways","tax","teacherRatio","color","status","cost")
+
+set.seed(6)
+nvmax<-13
+cvError <- NULL
+for(i in 1:nvmax){
+    k=5
+    folds = sample(1:k, nrow(df1), replace=TRUE) 
+    cv<-0
+    for(j in 1:k){
+        train <- df1[folds!=j,]
+        test <- df1[folds==j,]
+        fitFwd=regsubsets(cost~.,data=train,nvmax=13,method="forward")
+        coefi=coef(fitFwd,id=i)
+        test.mat=model.matrix(cost~.,data=test)
+        pred=test.mat[,names(coefi)]%*%coefi
+        rss=mean((test$cost - pred)^2)
+        cv=cv+rss
+        print(cv)
+    }
+    cvError[i]=cv/k
+}
+a <- seq(1,13)
+d <- as.data.frame(t(rbind(a,cvError)))
+names(d) <- c("Features","CVError")
+ggplot(d,aes(x=Features,y=CVError),color="blue") + geom_point() + geom_line(color="blue") +
+    xlab("No of features") + ylab("Cross Validation Error") +
+    ggtitle("Forward Selection - Cross Valdation Error vs No of Features")
+plot(seq(1,13),cvError,type="b",color="blue")
