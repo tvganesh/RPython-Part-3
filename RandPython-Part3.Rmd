@@ -159,3 +159,47 @@ ggplot(d,aes(x=Features,y=CVError),color="blue") + geom_point() + geom_line(colo
 
 The Cross validation error for SFS in Sklearn is negative, possibly because it computes
 teh 'neg_mean_squared_error'
+
+```{python}
+import numpy as np
+import pandas as pd
+import os
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from mlxtend.plotting import plot_sequential_feature_selection as plot_sfs
+import matplotlib.pyplot as plt
+from mlxtend.feature_selection import SequentialFeatureSelector as SFS
+from sklearn.linear_model import LinearRegression
+
+df = pd.read_csv("Boston.csv",encoding = "ISO-8859-1")
+#Rename the columns
+df.columns=["no","crimeRate","zone","indus","chasRiver","NO2","rooms","age",
+              "distances","idxHighways","taxRate","teacherRatio","color","status","cost"]
+X=df[["crimeRate","zone","indus","chasRiver","NO2","rooms","age",
+              "distances","idxHighways","taxRate","teacherRatio","color","status"]]
+y=df['cost']
+lr = LinearRegression()
+
+sfs = SFS(lr, 
+          k_features=(1,13), 
+          forward=True, 
+          floating=False, 
+          scoring='neg_mean_squared_error',
+          cv=5)
+
+sfs = sfs.fit(X.as_matrix(), y.as_matrix())
+a=sfs.get_metric_dict()
+
+n=[]
+for i in np.arange(1,13):
+    n.append(np.mean(a[i]['cv_scores'])) 
+m=np.arange(1,13)
+fig1=plt.plot(m,n)
+fig1=plt.title('Mean CV Scores')
+fig1.figure.savefig('fig3.png', bbox_inches='tight')
+
+
+```
+
+![output](fig3.png)
