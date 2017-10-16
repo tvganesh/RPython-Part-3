@@ -1,0 +1,53 @@
+---
+title: "RandPython-Part3"
+author: "Tinniam V Ganesh"
+date: "October 16, 2017"
+output: html_document
+---
+
+```{r}
+library(leaps)
+library(boot)
+source('RFunctions-1.R')
+df=read.csv("Boston.csv",stringsAsFactors = FALSE) # Data from MASS - SL
+dim(df)
+names(df) <-c("no","crimeRate","zone","indus","chasRiver","NO2","rooms","age",
+              "distances","idxHighways","taxRate","teacherRatio","color","status","cost")
+# Linear Regressiob fit
+fit <- lm(cost~. ,data=df)
+summary(fit)
+
+# Perform a best fit
+bestFit=regsubsets(cost~.,df,nvmax=14)
+bfSummary=summary(bestFit)
+names(bfSummary)
+
+# Plot the Residual Sum of Squares vs number of variables 
+plot(bfSummary$rss,xlab="Number of Variables",ylab="RSS",type="l")
+
+# Plot the Adjusted R Squared vs number of variables
+plot(bfSummary$adjr2,xlab="Number of Variables",ylab="Adjusted RSq",type="l")
+# Find the highest R squared
+a=which.max(bfSummary$adjr2)
+# Mark this max point as red
+points(a,bfSummary$adjr2[a], col="red",cex=2,pch=20)
+
+# Plot the CP statistic vs Number of variables
+plot(bfSummary$cp,xlab="Number of Variables",ylab="Cp",type='l')
+# Find the lowest CP value
+b=which.min(bfSummary$cp)
+# Mark this in red
+points(b,bfSummary$cp[b],col="red",cex=2,pch=20)
+
+
+#  Plot the BIC value
+plot(bfSummary$bic,xlab="Number of Variables",ylab="BIC",type='l')
+# Find and mark the min value
+c=which.min(bfSummary$bic)
+points(c,bfSummary$bic[c],col="red",cex=2,pch=20)
+
+plot(bestFit,scale="r2")
+plot(bestFit,scale="adjr2")
+
+```
+

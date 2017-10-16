@@ -3,6 +3,8 @@ source('RFunctions-1.R')
 library(leaps)
 library(boot)
 df=read.csv("Boston.csv",stringsAsFactors = FALSE) # Data from MASS - SL
+names(df) <-c("crimeRate","zone","indus","charles","nox","rooms","age",
+              "distances","highways","tax","teacherRatio","color","status","cost")
 train_idx <- trainTestSplit(df,trainPercent=75,seed=5)
 train <- df[train_idx, ]
 test <- df[-train_idx, ]
