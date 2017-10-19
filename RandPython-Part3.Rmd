@@ -503,3 +503,41 @@ print(X.columns[b])
 ```
 
 ![output](fig4.png)
+
+```{r}
+library(glmnet)
+library(dplyr)
+df=read.csv("Boston.csv",stringsAsFactors = FALSE) # Data from MASS - SL
+names(df) <-c("no","crimeRate","zone","indus","charles","nox","rooms","age",
+              "distances","highways","tax","teacherRatio","color","status","cost")
+df1 <- df %>% dplyr::select("crimeRate","zone","indus","charles","nox","rooms","age",
+                            "distances","highways","tax","teacherRatio","color","status","cost")
+
+X=model.matrix(cost~.,df1)[,-1]
+y=df1$cost
+fitRidge <-glmnet(X,y,alpha=0)
+plot(fitRidge,xvar="lambda",label=TRUE)
+cvRidge=cv.glmnet(X,y,alpha=0)
+plot(cvRidge)
+
+```
+
+```{r}
+library(glmnet)
+library(dplyr)
+df=read.csv("Boston.csv",stringsAsFactors = FALSE) # Data from MASS - SL
+names(df) <-c("no","crimeRate","zone","indus","charles","nox","rooms","age",
+              "distances","highways","tax","teacherRatio","color","status","cost")
+df1 <- df %>% dplyr::select("crimeRate","zone","indus","charles","nox","rooms","age",
+                            "distances","highways","tax","teacherRatio","color","status","cost")
+
+X=model.matrix(cost~.,df1)[,-1]
+y=df1$cost
+fitLasso <- glmnet(X,y)
+plot(fitLasso,xvar="lambda",label=TRUE)
+cvLasso=cv.glmnet(X,y,alpha=0)
+plot(cvLasso)
+```
+
+
+

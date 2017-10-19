@@ -145,3 +145,34 @@ ggplot(d,aes(x=Features,y=CVError),color="blue") + geom_point() + geom_line(colo
     xlab("No of features") + ylab("Cross Validation Error") +
     ggtitle("Forward Selection - Cross Valdation Error vs No of Features")
 plot(seq(1,13),cvError,type="b",color="blue")
+
+####################################################Ridge
+
+library(glmnet)
+df=read.csv("Boston.csv",stringsAsFactors = FALSE) # Data from MASS - SL
+names(df) <-c("no","crimeRate","zone","indus","charles","nox","rooms","age",
+              "distances","highways","tax","teacherRatio","color","status","cost")
+df1 <- df %>% dplyr::select("crimeRate","zone","indus","charles","nox","rooms","age",
+                            "distances","highways","tax","teacherRatio","color","status","cost")
+
+train_idx <- trainTestSplit(df1,trainPercent=75,seed=5)
+train <- df1[train_idx, ]
+test <- df1[-train_idx, ]
+
+X=model.matrix(cost~.,df1)[,-1]
+y=df1$cost
+
+Xtest=model.matrix(cost~.,test)[,-1]
+ytest=test$cost
+
+fitRidge <-glmnet(X,y,alpha=0)
+plot(fitRidge,xvar="lambda",label=TRUE)
+cvRidge=cv.glmnet(X,y,alpha=0)
+plot(cvRidge)
+
+
+fitLasso <- glmnet(X,y)
+plot(fitLasso,xvar="lambda",label=TRUE)
+cvLasso=cv.glmnet(X,y)
+plot(cvLasso)
+coef(cvLasso)
