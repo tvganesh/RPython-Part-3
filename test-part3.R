@@ -4,24 +4,17 @@ library(leaps)
 library(boot)
 library(dplyr)
 df=read.csv("Boston.csv",stringsAsFactors = FALSE) # Data from MASS - SL
-names(df) <-c("crimeRate","zone","indus","charles","nox","rooms","age",
+names(df) <-c("no","crimeRate","zone","indus","charles","nox","rooms","age",
               "distances","highways","tax","teacherRatio","color","status","cost")
-train_idx <- trainTestSplit(df,trainPercent=75,seed=5)
-train <- df[train_idx, ]
-test <- df[-train_idx, ]
+df1 <- df %>% dplyr::select("crimeRate","zone","indus","charles","nox","rooms","age",
+                            "distances","highways","tax","teacherRatio","color","status","cost")
 
-# Fit the 
-fit <- lm(cost~. ,data=train)
-summary(fit)
+bestFit <-regsubsets(cost~.,df1,nvmax=13)
+reg.summary=summary(bestFit)
 
-di# Best fit
-regfit.full=regsubsets(medv~.,train,nvmax=14)
-reg.summary=summary(regfit.full)
-names(reg.summary)
 reg.summary$rsq
 
-plot(reg.summary$rss,xlab="Number of Variables",ylab="RSS",type="l")
-plot(reg.summary$adjr2,xlab="Number of Variables",ylab="Adjusted RSq",type="l")
+plot(bestFit$rss,xlab="Number of Variables",ylab="RSS",type="l")
 a=which.max(reg.summary$adjr2)
 points(a,reg.summary$adjr2[a], col="red",cex=2,pch=20)
 plot(reg.summary$cp,xlab="Number of Variables",ylab="Cp",type='l')
@@ -30,16 +23,12 @@ points(b,reg.summary$cp[b],col="red",cex=2,pch=20)
 c=which.min(reg.summary$bic)
 plot(reg.summary$bic,xlab="Number of Variables",ylab="BIC",type='l')
 points(c,reg.summary$bic[c],col="red",cex=2,pch=20)
-plot(regfit.full,scale="r2")
-plot(regfit.full,scale="adjr2")
-plot(regfit.full,scale="Cp")
-plot(regfit.full,scale="bic")
-coef(regfit.full,14)
+plot(bestFit,scale="r2",main="Rsquared vs No Features")
+plot(bestFit,scale="Cp",main="Cp vs NoFeatures")
+plot(bestFit,scale="bic",main="BIC vs Features")
+coef(bestFit,13)
 
-b=sqrt(reg.summary$rss/378)
-plot(seq(1,14),b,type="b")
 
-plot(c(1,4),b)
 # Forward selection
 #http://rbyexamples.blogspot.in/2015/07/linear-regression.html
 fitFwd=regsubsets(medv~.,data=train,nvmax=14,method="forward")
