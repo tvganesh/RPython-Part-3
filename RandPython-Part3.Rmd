@@ -522,6 +522,69 @@ plot(cvRidge)
 
 ```
 
+
+```{python}
+import numpy as np
+import pandas as pd
+import os
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+
+
+df = pd.read_csv("Boston.csv",encoding = "ISO-8859-1")
+#Rename the columns
+df.columns=["no","crimeRate","zone","indus","chasRiver","NO2","rooms","age",
+              "distances","idxHighways","taxRate","teacherRatio","color","status","cost"]
+X=df[["crimeRate","zone","indus","chasRiver","NO2","rooms","age",
+              "distances","idxHighways","taxRate","teacherRatio","color","status"]]
+y=df['cost']
+from sklearn.preprocessing import MinMaxScaler
+scaler = MinMaxScaler()
+
+from sklearn.linear_model import Ridge
+X_train, X_test, y_train, y_test = train_test_split(X, y,
+                                                   random_state = 0)
+
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+linridge = Ridge(alpha=20.0).fit(X_train_scaled, y_train)
+
+print('Crime dataset')
+print('ridge regression linear model intercept: {}'
+     .format(linridge.intercept_))
+print('ridge regression linear model coeff:\n{}'
+     .format(linridge.coef_))
+print('R-squared score (training): {:.3f}'
+     .format(linridge.score(X_train_scaled, y_train)))
+print('R-squared score (test): {:.3f}'
+     .format(linridge.score(X_test_scaled, y_test)))
+print('Number of non-zero features: {}'
+     .format(np.sum(linridge.coef_ != 0)))
+
+trainingRsquared=[]
+testRsquared=[]
+print('Ridge regression: effect of alpha regularization parameter\n')
+for this_alpha in [0.001,.01,.1,0, 1, 10, 20, 50, 100, 1000]:
+    linridge = Ridge(alpha = this_alpha).fit(X_train_scaled, y_train)
+    r2_train = linridge.score(X_train_scaled, y_train)
+    r2_test = linridge.score(X_test_scaled, y_test)
+    num_coeff_bigger = np.sum(abs(linridge.coef_) > 1.0)
+    trainingRsquared.append(r2_train)
+    testRsquared.append(r2_test)
+alpha=[0.001,.01,.1,0, 1, 10, 20, 50, 100, 1000]    
+trainingRsquared=pd.DataFrame(trainingRsquared,index=alpha)
+testRsquared=pd.DataFrame(testRsquared,index=alpha)
+
+df3=pd.concat([trainingRsquared,testRsquared],axis=1)
+df3.columns=['trainingRsquared','testRsquared']
+
+df3.plot()
+
+
+```
+
+
 ```{r}
 library(glmnet)
 library(dplyr)
