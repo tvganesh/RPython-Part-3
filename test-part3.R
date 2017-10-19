@@ -28,21 +28,24 @@ plot(bestFit,scale="Cp",main="Cp vs NoFeatures")
 plot(bestFit,scale="bic",main="BIC vs Features")
 coef(bestFit,13)
 
-
+###################################################################
 # Forward selection
 #http://rbyexamples.blogspot.in/2015/07/linear-regression.html
-fitFwd=regsubsets(medv~.,data=train,nvmax=14,method="forward")
 
 
+train_idx <- trainTestSplit(df1,trainPercent=75,seed=5)
+train <- df1[train_idx, ]
+test <- df1[-train_idx, ]
+fitFwd=regsubsets(cost~.,data=train,nvmax=13,method="forward")
 
-val.errors=rep(NA,14)
-test.mat=model.matrix(medv~.,data=test)
-for(i in 1:14){
-    coefi=coef(regfit.fwd,id=i)
+val.errors=rep(NA,13)
+test.mat=model.matrix(cost~.,data=test)
+for(i in 1:13){
+    coefi=coef(fitFwd,id=i)
     pred=test.mat[,names(coefi)]%*%coefi
-    val.errors[i]=mean((test$medv-pred)^2)
+    val.errors[i]=mean((test$cost-pred)^2)
 }
-
+which.min(val.errors)
 k = 10
 set.seed(1)
 folds = sample(1:k, nrow(df), replace=TRUE) 

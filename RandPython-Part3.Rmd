@@ -5,7 +5,9 @@ date: "October 16, 2017"
 output: html_document
 ---
 
-```{r}
+# 1 Best fit - R code
+
+```{r fig1,cache=TRUE}
 library(leaps)
 library(boot)
 source('RFunctions-1.R')
@@ -25,6 +27,9 @@ bfSummary=summary(bestFit)
 
 # Plot the Residual Sum of Squares vs number of variables 
 plot(bfSummary$rss,xlab="Number of Variables",ylab="RSS",type="l")
+a=which.min(bfSummary$rss)
+# Mark this in red
+points(a,bfSummary$rss[a],col="red",cex=2,pch=20)
 
 # Plot the CP statistic vs Number of variables
 plot(bfSummary$cp,xlab="Number of Variables",ylab="Cp",type='l')
@@ -32,7 +37,8 @@ plot(bfSummary$cp,xlab="Number of Variables",ylab="Cp",type='l')
 b=which.min(bfSummary$cp)
 # Mark this in red
 points(b,bfSummary$cp[b],col="red",cex=2,pch=20)
-
+# Display the set of features which provide the best fit
+coef(bestFit,b)
 
 #  Plot the BIC value
 plot(bfSummary$bic,xlab="Number of Variables",ylab="BIC",type='l')
@@ -46,8 +52,8 @@ plot(bestFit,scale="bic",main="BIC vs Features")
 
 ```
 
-
-```{python}
+# Best fit (Exhaustive Search ) - Python code
+```{python cache=TRUE}
 import numpy as np
 import pandas as pd
 import os
@@ -77,60 +83,36 @@ print('Best subset:', efs1.best_idx_)
 ```
 
 
-```{python}
-import numpy as np
-import pandas as pd
-import os
-import matplotlib.pyplot as plt
-from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LinearRegression
-from sklearn.datasets import load_boston
-from mlxtend.plotting import plot_sequential_feature_selection as plot_sfs
-import matplotlib.pyplot as plt
-from mlxtend.feature_selection import SequentialFeatureSelector as SFS
-from sklearn.linear_model import LinearRegression
+# Forward fit - R code
 
+```{r fig2,cache=TRUE}
+df=read.csv("Boston.csv",stringsAsFactors = FALSE) # Data from MASS - SL
+names(df) <-c("no","crimeRate","zone","indus","charles","nox","rooms","age",
+              "distances","highways","tax","teacherRatio","color","status","cost")
 
-df = pd.read_csv("Boston.csv",encoding = "ISO-8859-1")
-#Rename the columns
-df.columns=["no","crimeRate","zone","indus","chasRiver","NO2","rooms","age",
-              "distances","idxHighways","taxRate","teacherRatio","color","status","cost"]
-X=df[["crimeRate","zone","indus","chasRiver","NO2","rooms","age",
-              "distances","idxHighways","taxRate","teacherRatio","color","status"]]
-y=df['cost']
-lr = LinearRegression()
+# Select columns
+df1 <- df %>% dplyr::select("crimeRate","zone","indus","charles","nox","rooms","age",
+                     "distances","highways","tax","teacherRatio","color","status","cost")
+train_idx <- trainTestSplit(df1,trainPercent=75,seed=5)
+train <- df1[train_idx, ]
+test <- df1[-train_idx, ]
+fitFwd=regsubsets(cost~.,data=train,nvmax=13,method="forward")
 
-sfs = SFS(lr, 
-          k_features=(1,13), 
-          forward=True, 
-          floating=False, 
-          scoring='neg_mean_squared_error',
-          cv=5)
+valErrors=rep(NA,13)
+test.mat=model.matrix(cost~.,data=test)
+for(i in 1:13){
+    coefi=coef(fitFwd,id=i)
+    pred=test.mat[,names(coefi)]%*%coefi
+    valErrors[i]=mean((test$cost-pred)^2)
+}
 
-sfs = sfs.fit(X.as_matrix(), y.as_matrix())
-a=sfs.get_metric_dict()
-n=[]
-o=[]
-for i in np.arange(1,14):
-    n.append(np.mean(a[i]['cv_scores'])) 
-    o.append(a[i]['std_err'])
-    
-    
-m=np.arange(1,14)
-
-fig1=plt.plot(m,n)
-fig1=plt.title('Mean CV Scores')
-fig1.figure.savefig('fig1.png', bbox_inches='tight')
-
-fig2=plt.plot(m,o)
-fig2=plt.title('Best Forward Selection (w. StdErr)')
-fig2.figure.savefig('fig2.png', bbox_inches='tight')
-print(pd.DataFrame.from_dict(sfs.get_metric_dict(confidence_interval=0.90)).T)
+plot(valErrors,xlab="Number of Variables",ylab="Validation Error",type="l")
+a<-which.min(valErrors)
+points(c,valErrors[a],col="blue",cex=2,pch=20)
 ```
-![output](fig1.png)
-![output](fig2.png)
 
-```{r}
+
+```{r fig3,cache=TRUE}
 library(dplyr)
 df=read.csv("Boston.csv",stringsAsFactors = FALSE) # Data from MASS - SL
 names(df) <-c("no","crimeRate","zone","indus","charles","nox","rooms","age",
@@ -182,11 +164,64 @@ ggplot(d,aes(x=Features,y=CVError),color="blue") + geom_point() + geom_line(colo
 
 ```
 
+# Forward fit - Python code
+```{python }
+import numpy as np
+import pandas as pd
+import os
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.datasets import load_boston
+from mlxtend.plotting import plot_sequential_feature_selection as plot_sfs
+import matplotlib.pyplot as plt
+from mlxtend.feature_selection import SequentialFeatureSelector as SFS
+from sklearn.linear_model import LinearRegression
+
+
+df = pd.read_csv("Boston.csv",encoding = "ISO-8859-1")
+#Rename the columns
+df.columns=["no","crimeRate","zone","indus","chasRiver","NO2","rooms","age",
+              "distances","idxHighways","taxRate","teacherRatio","color","status","cost"]
+X=df[["crimeRate","zone","indus","chasRiver","NO2","rooms","age",
+              "distances","idxHighways","taxRate","teacherRatio","color","status"]]
+y=df['cost']
+lr = LinearRegression()
+
+sfs = SFS(lr, 
+          k_features=(1,13), 
+          forward=True, 
+          floating=False, 
+          scoring='neg_mean_squared_error',
+          cv=5)
+
+sfs = sfs.fit(X.as_matrix(), y.as_matrix())
+a=sfs.get_metric_dict()
+n=[]
+o=[]
+for i in np.arange(1,14):
+    n.append(-np.mean(a[i]['cv_scores'])) 
+    o.append(a[i]['std_err'])
+    
+    
+m=np.arange(1,14)
+
+fig1=plt.plot(m,n)
+fig1=plt.title('Mean CV Scores')
+fig1.figure.savefig('fig1.png', bbox_inches='tight')
+
+print(pd.DataFrame.from_dict(sfs.get_metric_dict(confidence_interval=0.90)).T)
+```
+![output](fig1.png)
+
+
+
+
 
 The Cross validation error for SFS in Sklearn is negative, possibly because it computes
 teh 'neg_mean_squared_error'
 
-```{python}
+```{python }
 import numpy as np
 import pandas as pd
 import os
@@ -219,7 +254,7 @@ a=sfs.get_metric_dict()
 
 n=[]
 for i in np.arange(1,13):
-    n.append(np.mean(a[i]['cv_scores'])) 
+    n.append(-np.mean(a[i]['cv_scores'])) 
 m=np.arange(1,13)
 fig1=plt.plot(m,n)
 fig1=plt.title('Mean CV Scores')
