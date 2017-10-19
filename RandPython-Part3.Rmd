@@ -27,6 +27,7 @@ bfSummary=summary(bestFit)
 
 # Plot the Residual Sum of Squares vs number of variables 
 plot(bfSummary$rss,xlab="Number of Variables",ylab="RSS",type="l")
+# Gives the index of the minimum value
 a=which.min(bfSummary$rss)
 # Mark this in red
 points(a,bfSummary$rss[a],col="red",cex=2,pch=20)
@@ -53,7 +54,7 @@ plot(bestFit,scale="bic",main="BIC vs Features")
 ```
 
 # Best fit (Exhaustive Search ) - Python code
-```{python cache=TRUE}
+```{python cache=TRUE,message=FALSE,warning=FALSE}
 import numpy as np
 import pandas as pd
 import os
@@ -78,13 +79,13 @@ efs1 = EFS(lr,
 
 
 efs1 = efs1.fit(X.as_matrix(), y.as_matrix())
-print('Best neagtive mean squared error: %.2f' % efs1.best_score_)
+print('Best negtive mean squared error: %.2f' % efs1.best_score_)
 print('Best subset:', efs1.best_idx_)
 ```
 
 
 # Forward fit - R code
-
+Forward fit in R determines that 11 features are required for the best fit. The features are shown below
 ```{r fig2,cache=TRUE}
 df=read.csv("Boston.csv",stringsAsFactors = FALSE) # Data from MASS - SL
 names(df) <-c("no","crimeRate","zone","indus","charles","nox","rooms","age",
@@ -107,8 +108,14 @@ for(i in 1:13){
 }
 
 plot(valErrors,xlab="Number of Variables",ylab="Validation Error",type="l")
+# Gives the index of the minimum value
 a<-which.min(valErrors)
+print(a)
 points(c,valErrors[a],col="blue",cex=2,pch=20)
+
+#Print the 11 ccoefficients
+coefi=coef(fitFwd,id=i)
+coefi
 ```
 
 
@@ -161,10 +168,19 @@ ggplot(d,aes(x=Features,y=CVError),color="blue") + geom_point() + geom_line(colo
     xlab("No of features") + ylab("Cross Validation Error") +
     ggtitle("Forward Selection - Cross Valdation Error vs No of Features")
 
+# This gives the index of the minimum value
+a=which.min(cvError)
+print(a)
+#Print the 13 coefficients of these features
+coefi=coef(fitFwd,id=a)
+coefi
+
 
 ```
 
 # Forward fit - Python code
+The Cross validation error for SFS in Sklearn is negative, possibly because it computes
+the 'neg_mean_squared_error'
 ```{python }
 import numpy as np
 import pandas as pd
@@ -199,27 +215,40 @@ sfs = sfs.fit(X.as_matrix(), y.as_matrix())
 a=sfs.get_metric_dict()
 n=[]
 o=[]
-for i in np.arange(1,14):
+for i in np.arange(1,13):
     n.append(-np.mean(a[i]['cv_scores'])) 
-    o.append(a[i]['std_err'])
+   
     
     
-m=np.arange(1,14)
+m=np.arange(1,13)
+# Get the index of the minimum CV score
+
 
 fig1=plt.plot(m,n)
 fig1=plt.title('Mean CV Scores')
 fig1.figure.savefig('fig1.png', bbox_inches='tight')
 
 print(pd.DataFrame.from_dict(sfs.get_metric_dict(confidence_interval=0.90)).T)
+
+idx = np.argmin(n)
+print(idx)
+#Get the features indices for the best forward fit and convert to list
+b=list(a[idx]['feature_idx'])
+print(b)
+
+print("#################################################################################")
+# Index the column names. 
+# Features from forward fit
+print("Features selected in forward fit")
+print(X.columns[b])
 ```
+
+
 ![output](fig1.png)
 
 
 
-
-
-The Cross validation error for SFS in Sklearn is negative, possibly because it computes
-teh 'neg_mean_squared_error'
+## Backward fit
 
 ```{python }
 import numpy as np
@@ -244,23 +273,43 @@ lr = LinearRegression()
 
 sfs = SFS(lr, 
           k_features=(1,13), 
-          forward=True, 
+          forward=False, 
           floating=False, 
           scoring='neg_mean_squared_error',
           cv=5)
 
 sfs = sfs.fit(X.as_matrix(), y.as_matrix())
 a=sfs.get_metric_dict()
-
 n=[]
+o=[]
 for i in np.arange(1,13):
     n.append(-np.mean(a[i]['cv_scores'])) 
+   
+    
+    
 m=np.arange(1,13)
-fig1=plt.plot(m,n)
-fig1=plt.title('Mean CV Scores')
-fig1.figure.savefig('fig3.png', bbox_inches='tight')
+# Get the index of the minimum CV score
+
+
+fig2=plt.plot(m,n)
+fig2=plt.title('Mean CV Scores')
+fig2.figure.savefig('fig2.png', bbox_inches='tight')
+
+print(pd.DataFrame.from_dict(sfs.get_metric_dict(confidence_interval=0.90)).T)
+
+idx = np.argmin(n)
+print(idx)
+#Get the features indices for the best forward fit and convert to list
+b=list(a[idx]['feature_idx'])
+print(b)
+
+print("#################################################################################")
+# Index the column names. 
+# Features from backward fit
+print("Features selected in bacward fit")
+print(X.columns[b])
 
 
 ```
 
-![output](fig3.png)
+![output](fig2.png)
