@@ -579,11 +579,41 @@ testRsquared=pd.DataFrame(testRsquared,index=alpha)
 df3=pd.concat([trainingRsquared,testRsquared],axis=1)
 df3.columns=['trainingRsquared','testRsquared']
 
-df3.plot()
+fig5=df3.plot()
+fig5.figure.savefig('fig5.png', bbox_inches='tight')
+
+from sklearn import linear_model
+# #############################################################################
+# Compute paths
+
+n_alphas = 200
+alphas = np.logspace(0, 8, n_alphas)
+
+coefs = []
+for a in alphas:
+    ridge = linear_model.Ridge(alpha=a, fit_intercept=False)
+    ridge.fit(X_train_scaled, y_train)
+    coefs.append(ridge.coef_)
+
+# #############################################################################
+# Display results
+
+ax = plt.gca()
+
+fig6=ax.plot(alphas, coefs)
+fig6=ax.set_xscale('log')
+fig6=ax.set_xlim(ax.get_xlim()[::-1])  # reverse axis
+fig6=plt.xlabel('alpha')
+fig6=plt.ylabel('weights')
+fig6=plt.title('Ridge coefficients as a function of the regularization')
+fig6=plt.axis('tight')
+plt.savefig('fig6.png', bbox_inches='tight')
 
 
 ```
 
+![output](fig5.png)
+![output](fig6.png)
 
 ```{r}
 library(glmnet)
@@ -603,4 +633,92 @@ plot(cvLasso)
 ```
 
 
+```{python}
+import numpy as np
+import pandas as pd
+import os
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import Lasso
+from sklearn.preprocessing import MinMaxScaler
+from sklearn import linear_model
 
+scaler = MinMaxScaler()
+df = pd.read_csv("Boston.csv",encoding = "ISO-8859-1")
+#Rename the columns
+df.columns=["no","crimeRate","zone","indus","chasRiver","NO2","rooms","age",
+              "distances","idxHighways","taxRate","teacherRatio","color","status","cost"]
+X=df[["crimeRate","zone","indus","chasRiver","NO2","rooms","age",
+              "distances","idxHighways","taxRate","teacherRatio","color","status"]]
+y=df['cost']
+X_train, X_test, y_train, y_test = train_test_split(X, y,
+                                                   random_state = 0)
+
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+linlasso = Lasso(alpha=0.1, max_iter = 10).fit(X_train_scaled, y_train)
+
+
+print('lasso regression linear model intercept: {}'
+     .format(linlasso.intercept_))
+print('lasso regression linear model coeff:\n{}'
+     .format(linlasso.coef_))
+print('Non-zero features: {}'
+     .format(np.sum(linlasso.coef_ != 0)))
+print('R-squared score (training): {:.3f}'
+     .format(linlasso.score(X_train_scaled, y_train)))
+print('R-squared score (test): {:.3f}\n'
+     .format(linlasso.score(X_test_scaled, y_test)))
+print('Features with non-zero weight (sorted by absolute magnitude):')
+
+for e in sorted (list(zip(list(X), linlasso.coef_)),
+                key = lambda e: -abs(e[1])):
+    if e[1] != 0:
+        print('\t{}, {:.3f}'.format(e[0], e[1]))
+        
+
+print('Lasso regression: effect of alpha regularization\n\
+parameter on number of features kept in final model\n')
+
+trainingRsquared=[]
+testRsquared=[]
+#for alpha in [0.01,0.05,0.1, 1, 2, 3, 5, 10, 20, 50]:
+for alpha in [0.01,0.07,0.05, 0.1, 1,2, 3, 5, 10]:
+    linlasso = Lasso(alpha, max_iter = 100000).fit(X_train_scaled, y_train)
+    r2_train = linlasso.score(X_train_scaled, y_train)
+    r2_test = linlasso.score(X_test_scaled, y_test)
+    trainingRsquared.append(r2_train)
+    testRsquared.append(r2_test)
+    
+alpha=[0.01,0.07,0.05, 0.1, 1,2, 3, 5, 10]    
+#alpha=[0.01,0.05,0.1, 1, 2, 3, 5, 10, 20, 50]
+trainingRsquared=pd.DataFrame(trainingRsquared,index=alpha)
+testRsquared=pd.DataFrame(testRsquared,index=alpha)
+
+df3=pd.concat([trainingRsquared,testRsquared],axis=1)
+df3.columns=['trainingRsquared','testRsquared']
+
+df3.plot()
+plt.savefig('fig7.png', bbox_inches='tight')
+
+
+print("Computing regularization path using the LARS ...")
+alphas, _, coefs = linear_model.lars_path(X_train_scaled, y_train, method='lasso', verbose=True)
+
+xx = np.sum(np.abs(coefs.T), axis=1)
+xx /= xx[-1]
+print(xx)
+plt.plot(xx, coefs.T)
+plt.xlim(xmax = 1.0, xmin = 0.0)
+ymin, ymax = plt.ylim()
+plt.vlines(xx, ymin, ymax, linestyle='dashed')
+plt.xlabel('|coef| / max|coef|')
+plt.ylabel('Coefficients')
+plt.title('LASSO Path')
+plt.axis('tight')
+plt.savefig('fig8.png', bbox_inches='tight')
+```
+
+![output](fig7.png)
+![output](fig8.png)
