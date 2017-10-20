@@ -263,8 +263,9 @@ coefi
 ```
 
 ## 1.2b Forward fit - Python code
-The Cross validation error for SFS in Sklearn is negative, possibly because it computes
-the 'neg_mean_squared_error' I have taken the -ve of this neg_mean_squared_error. I think this
+The Backward Fit in Python uses the  Sequential feature selection (SFS) package (SFS)(https://rasbt.github.io/mlxtend/user_guide/feature_selection/SequentialFeatureSelector/)
+**Note:** The Cross validation error for SFS in Sklearn is negative, possibly because it computes
+the 'neg_mean_squared_error'. The earlier 'mean_squared_error' in the package seems to have been deprecated.  I have taken the -ve of this neg_mean_squared_error. I think this
 would give mean_squared_error.
 ```{python }
 import numpy as np
@@ -338,10 +339,13 @@ print(X.columns[b])
 ## 1.3 Backward Fit
 Backward fit belongs to the class of greedy algorithms which  tries to optimize the feature set selected by dropping a feature at every stage which results in the worst performance for a given criteria of Adj RSquared, Cp, BIC or AIC.  For a dataset with features f1,f2,f3...fn, the backward fit starts with the all the features f1,f2.. fn to begin with. It then pick the ML model with a n-1 eatures  by dropping the feature the inclusion of which results in the worst performance in adj Rsquared, or minimum Cp, BIC or some such criteria.  At every step 1 feature is dopped. There is guarantee that the final list of features chosen will be the best among the lot. The computation required for this is of 
 $n + n-1 + n -2 + .. 1 = n(n+1)/2$ which is of the order of $n^{2}$. Though backward fit is a sub optimal solution is far more computationally efficient than best fit
-# Backward fit - R code
+
+## 1.3a Backward fit - R code
 ```{r fig4,cache=TRUE}
 library(dplyr)
+# Read the data
 df=read.csv("Boston.csv",stringsAsFactors = FALSE) # Data from MASS - SL
+# Rename the columns
 names(df) <-c("no","crimeRate","zone","indus","charles","nox","rooms","age",
               "distances","highways","tax","teacherRatio","color","status","cost")
 
@@ -376,6 +380,7 @@ for(i in 1:nvmax){
         pred=test.mat[,names(coefi)]%*%coefi
         # Compute mean squared error
         rss=mean((test$cost - pred)^2)
+        # Add the Residual sum of square
         cv=cv+rss
     }
     # Compute the average of MSE for K folds for number of features 'i'
@@ -384,6 +389,7 @@ for(i in 1:nvmax){
 a <- seq(1,13)
 d <- as.data.frame(t(rbind(a,cvError)))
 names(d) <- c("Features","CVError")
+# Plot the Cross Validation Error vs Number of features
 ggplot(d,aes(x=Features,y=CVError),color="blue") + geom_point() + geom_line(color="blue") +
     xlab("No of features") + ylab("Cross Validation Error") +
     ggtitle("Backward Selection - Cross Valdation Error vs No of Features")
@@ -398,8 +404,8 @@ coefi
 ```
 
 
-## Backward fit - Python code
-
+## 1.3b Backward fit - Python code
+The Backward Fit in Python uses the  Sequential feature selection (SFS)  package (SFS)(https://rasbt.github.io/mlxtend/user_guide/feature_selection/SequentialFeatureSelector/)
 ```{python }
 import numpy as np
 import pandas as pd
@@ -412,6 +418,7 @@ import matplotlib.pyplot as plt
 from mlxtend.feature_selection import SequentialFeatureSelector as SFS
 from sklearn.linear_model import LinearRegression
 
+# Read the data
 df = pd.read_csv("Boston.csv",encoding = "ISO-8859-1")
 #Rename the columns
 df.columns=["no","crimeRate","zone","indus","chasRiver","NO2","rooms","age",
@@ -421,32 +428,36 @@ X=df[["crimeRate","zone","indus","chasRiver","NO2","rooms","age",
 y=df['cost']
 lr = LinearRegression()
 
+# Create the SFS model
 sfs = SFS(lr, 
           k_features=(1,13), 
-          forward=False, 
+          forward=False, # Backward
           floating=False, 
           scoring='neg_mean_squared_error',
           cv=5)
 
+# Fit the model
 sfs = sfs.fit(X.as_matrix(), y.as_matrix())
 a=sfs.get_metric_dict()
 n=[]
 o=[]
+
+# Compute the mean of the validation scores
 for i in np.arange(1,13):
     n.append(-np.mean(a[i]['cv_scores'])) 
    
     
     
 m=np.arange(1,13)
-# Get the index of the minimum CV score
 
-
+# Plot the Validation scores vs number of features
 fig2=plt.plot(m,n)
 fig2=plt.title('Mean CV Scores')
 fig2.figure.savefig('fig2.png', bbox_inches='tight')
 
 print(pd.DataFrame.from_dict(sfs.get_metric_dict(confidence_interval=0.90)).T)
 
+# Get the index of minimum cross validation error
 idx = np.argmin(n)
 print "No of features=",idx
 #Get the features indices for the best forward fit and convert to list
@@ -465,7 +476,8 @@ print(X.columns[b])
 ![output](fig2.png)
 
 
-# SFFS - Python
+## 1.3c Sequential Floating Forward Selection (SFFS) - Python code
+The Sequential Feature search also includes 'floating' variants which include or exclude features conditionally, once they were excluded or included. These variants are included below
 ```{python }
 import numpy as np
 import pandas as pd
@@ -489,32 +501,35 @@ X=df[["crimeRate","zone","indus","chasRiver","NO2","rooms","age",
 y=df['cost']
 lr = LinearRegression()
 
+# Create the floating forward search
 sffs = SFS(lr, 
           k_features=(1,13), 
-          forward=True, 
-          floating=True, 
+          forward=True,  # Forward
+          floating=True,  #Floating
           scoring='neg_mean_squared_error',
           cv=5)
 
+# Fit a model
 sffs = sffs.fit(X.as_matrix(), y.as_matrix())
 a=sffs.get_metric_dict()
 n=[]
 o=[]
+# Compute mean validation scores
 for i in np.arange(1,13):
     n.append(-np.mean(a[i]['cv_scores'])) 
    
     
     
 m=np.arange(1,13)
-# Get the index of the minimum CV score
 
 
+# Plot the cross validation score vs number of features
 fig3=plt.plot(m,n)
 fig3=plt.title('Mean CV Scores')
 fig3.figure.savefig('fig3.png', bbox_inches='tight')
 
 print(pd.DataFrame.from_dict(sffs.get_metric_dict(confidence_interval=0.90)).T)
-
+# Get the index of the minimum CV score
 idx = np.argmin(n)
 print "No of features=",idx
 #Get the features indices for the best forward floating fit and convert to list
@@ -530,7 +545,7 @@ print(X.columns[b])
 
 ![output](fig3.png)
 
-
+## 1.3d Sequential Floating Backward Selection (SFBS) - Python code
 ```{python}
 import numpy as np
 import pandas as pd
@@ -556,8 +571,8 @@ lr = LinearRegression()
 
 sffs = SFS(lr, 
           k_features=(1,13), 
-          forward=False, 
-          floating=True, 
+          forward=False, # Backward
+          floating=True, # Floating
           scoring='neg_mean_squared_error',
           cv=5)
 
@@ -565,14 +580,13 @@ sffs = sffs.fit(X.as_matrix(), y.as_matrix())
 a=sffs.get_metric_dict()
 n=[]
 o=[]
+# Compute the mean cross validation score
 for i in np.arange(1,13):
     n.append(-np.mean(a[i]['cv_scores'])) 
    
     
     
 m=np.arange(1,13)
-# Get the index of the minimum CV score
-
 
 fig4=plt.plot(m,n)
 fig4=plt.title('Mean CV Scores')
@@ -580,6 +594,7 @@ fig4.figure.savefig('fig4.png', bbox_inches='tight')
 
 print(pd.DataFrame.from_dict(sffs.get_metric_dict(confidence_interval=0.90)).T)
 
+# Get the index of the minimum CV score
 idx = np.argmin(n)
 print "No of features=",idx
 #Get the features indices for the best backward floating fit and convert to list
@@ -595,20 +610,41 @@ print(X.columns[b])
 
 ![output](fig4.png)
 
+# 1.4 Ridge regression
+In Linear Regression the Residual Sum of Squares (RSS) is given as
+$RSS = \sum_{i=1}^{n} (y_{i} - \beta_{0} - \sum_{j=1}^{p}\beta_jx_{ij})^{2}$
+$\sum_{i=1}^{n} (y_{i} - \beta_{0} - \sum_{j=1}^{p}\beta_jx_{ij})^{2} + \lambda \sum_{j=1}^{p}\beta^{2}$
+
+where $\lamda $ is teh regularization or tuning parameter. Increasing Lamda increases the penalty
+on the coefficients thus shrinking them. However in Ridge Regression features that do not influence the target variable will shrink closer to zero but never become zero except for very large values of $\lambda$
+
+Ridge regression in R requires the 'glmnet' package
+
 ```{r}
 library(glmnet)
 library(dplyr)
+# Read the data
 df=read.csv("Boston.csv",stringsAsFactors = FALSE) # Data from MASS - SL
+#Rename the columns
 names(df) <-c("no","crimeRate","zone","indus","charles","nox","rooms","age",
               "distances","highways","tax","teacherRatio","color","status","cost")
+# Select specific columns
 df1 <- df %>% dplyr::select("crimeRate","zone","indus","charles","nox","rooms","age",
                             "distances","highways","tax","teacherRatio","color","status","cost")
 
 X=model.matrix(cost~.,df1)[,-1]
 y=df1$cost
+
+# Fit a Ridge model
 fitRidge <-glmnet(X,y,alpha=0)
+
+#Plot the model
 plot(fitRidge,xvar="lambda",label=TRUE)
+
+# Compute the cross validation error
 cvRidge=cv.glmnet(X,y,alpha=0)
+
+#Plot the cross validation error
 plot(cvRidge)
 
 ```
