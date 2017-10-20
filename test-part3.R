@@ -158,7 +158,8 @@ train_idx <- trainTestSplit(df1,trainPercent=75,seed=5)
 train <- df1[train_idx, ]
 test <- df1[-train_idx, ]
 
-X=model.matrix(cost~.,df1)[,-1]
+
+X=as.matrix(df1[,1:13])
 y=df1$cost
 
 Xtest=model.matrix(cost~.,test)[,-1]

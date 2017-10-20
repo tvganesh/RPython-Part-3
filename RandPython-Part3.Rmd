@@ -7,12 +7,11 @@ output: html_document
 
 In this post 'Practical Machine Learning with R and Python - Part 3' I discuss 'Feature Selection' methods. This post is a continuation of my 2 earlier posts
 
-1.[Practical Machine Learning with R and Python - Part 1](https://gigadom.wordpress.com/2017/10/06/practical-machine-learning-with-r-and-python-part-1/)
-2.[Practical Machine Learning with R and Python - Part 1](https://gigadom.wordpress.com/2017/10/13/practical-machine-learning-with-r-and-python-part-2/)
+1. [Practical Machine Learning with R and Python - Part 1](https://gigadom.wordpress.com/2017/10/06/practical-machine-learning-with-r-and-python-part-1/)
+2. [Practical Machine Learning with R and Python - Part 1](https://gigadom.wordpress.com/2017/10/13/practical-machine-learning-with-r-and-python-part-2/)
 
 
-Usually there will be a large number of predictors for a target variable. It is likely that not all the predictor or feature variables will have an impact on the output. Hence it is becomes necessary to choose all those features which influence the output variable. The techiniques that are used to simplify the machine learning model while removing features which
-have little or no impact are 
+While applying Machine Learning techniques the data set will usually include a large number of predictors for a target variable. It is likely that not all the predictor or feature variables will have an impact on the output. Hence it is becomes necessary to choose only those features which influence the output variable thus simplying the reduced feature set on which to train the ML model on.  The techiniques that are used are the following
 
 - Best fit 
 - Forward fit 
@@ -20,24 +19,28 @@ have little or no impact are
 - Ridge Regression or L2 regularization
 - Lasso or L1 regularization
 
-All these methods remove those features which do not have a great influence on the output.
-# 1.1 Best Fit
-For a dataset with features f1,f2,f3...fn, the best fit chooses all combinations of features and creates separate ML models for each of the combinations. The best fit algotithm then  uses some filtering  criteria based on Adj Rsquared, Cp or AIC to pick out the best model among all models.
-Since the Best Fit approach searches the entire solumn space it is computationally infeasible. The number of models that have to be searched work to $latex 2^{p}$. This can be shown as follows
+All these methods remove those features which do not sufficiently influence  the output.
 
-There are $latex C_{1}$ ways to choose single feature ML models among n features, $latex C_{2}$ ways to choose 2 feature models among n models and so on, or
+# 1.1 Best Fit
+For a dataset with features f1,f2,f3...fn, the 'Best fit' approach, chooses all possible combinations of features and creates separate ML models for each of the different combinations. The best fit algotithm then  uses some filtering  criteria based on Adj Rsquared, Cp, BIC or AIC to pick out the best model among all models.
+
+Since the Best Fit approach searches the entire solution space it is computationally infeasible. The number of models that have to be searched increase exponentially as the number of predictors increase. For 'p' predictors a total of  $latex 2^{p}$ ML models have to be searched. This can be shown as follows
+
+There are $latex C_{1}$ ways to choose single feature ML models among 'n' features, $latex C_{2}$ ways to choose 2 feature models among 'n' models and so on, or
 
 $C_{1} + C_{2} +.... + C_{n}$= Total number of models in Best Fit
-Since
-$ (1+x)^{n} = 1+C_{1}x + C_{2} +... + C_{n}$ and when x=1 this becomes
+Since from Binomail theorem we have 
+$ (1+x)^{n} = 1+C_{1}x + C_{2} +... + C_{n}$  --- (1)
+
+When x=1 in the equation (1) above, this becomes
 $2^{n} = 1+C_{1}x + C_{2} +... + C_{n}$
 
-Hence there are $2^{n}$ models to search amongs in Best Fit. For 10 features this is 1000 models and for 40 features this becoms $2^{40}$ which almost 1 trillion. Usually there are datasets with 1000 or maybe even 100000 features and Best fit becomes computationally infeasible.
+Hence there are $2^{n}$ models to search amongs in Best Fit. For 10 features this is $ 2^{10}$ or ~1000 models and for 40 features this becoms $2^{40}$ which almost 1 trillion. Usually there are datasets with 1000 or maybe even 100000 features and Best fit becomes computationally infeasible.
 
 
-Anyways I have included the Best Fit approach as I use the Boston crime datasets which is available both the MASS package in R and Sklearn in Python.
+Anyways I have included the Best Fit approach as I use the Boston crime datasets which is available both the MASS package in R and Sklearn in Python and it has 13 features. Even this small feature set takes a bit of time since the Best fit needs to search among ~$2^{13}= 8192$ models
 
-Perform a simple Linear Regression Fit. By looking at the p-values of the features it can be 
+Initially I perform a simple Linear Regression Fit to estimate the features that are statistically insignificant. By looking at the p-values of the features it can be 
 seen that 'indus' and 'age' features have high p-values and are not significant
 
 # 1.1a Linear Regression - R code
@@ -57,6 +60,8 @@ fit <- lm(cost~. ,data=df1)
 summary(fit)
 
 ```
+
+Next we apply the different feature selection models to automatically remove features that are not significant below
 
 # 1.1a Best Fit - R code
 
@@ -109,7 +114,7 @@ plot(bestFit,scale="bic",main="BIC vs Features")
 ```
 
 ## 1.1b Best fit (Exhaustive Search ) - Python code
-The Python package for performing a Best Fit is the Exhaustive Feature Selector.
+The Python package for performing a Best Fit is the Exhaustive Feature Selector [EFS](http://rasbt.github.io/mlxtend/user_guide/feature_selection/ExhaustiveFeatureSelector/).
 ```{python cache=TRUE,message=FALSE,warning=FALSE}
 import numpy as np
 import pandas as pd
@@ -149,8 +154,8 @@ print('Best subset:', efs1.best_idx_)
 ```
 
 # 1.2 Forward fit
-Forward fit is a greedy algorithm that tries to optimize the feature selected  that minimizes the selection criteria (adj Rsqaured, Cp, AIC or BIC) at every step. For a dataset with features f1,f2,f3...fn, the forward fit starts with the NULL set. It then pick the ML model with a single feature from n features  which has the highest adj Rsquared, or minimum Cp, BIC or some such criteria.  After picking the 1 feature from n which satisfies the criteria the most, the next feature from the remaining n-1 features is chosen. When the 2 feature model with satisfied the selection criteria the best is chosen, another feature from the remaining n-2 features are added and so on. The forward fit is a sub-optimal algorithm. There is guarantee that the final list of features chosen will be the best among the lot. The computation required for this is of 
-$n + n-1 + n-2 + ...1 = n(n+1)/2$ which is of the order of $n^{2}$. Though forward fit is a sub optimal solution is far more computationally efficient than best fit
+Forward fit is a greedy algorithm that tries to optimize the feature selected, by minimizing the selection criteria (adj Rsqaured, Cp, AIC or BIC) at every step. For a dataset with features f1,f2,f3...fn, the forward fit starts with the NULL set. It then pick the ML model with a single feature from n features  which has the highest adj Rsquared, or minimum Cp, BIC or some such criteria.  After picking the 1 feature from n which satisfies the criteria the most, the next feature from the remaining n-1 features is chosen. When the 2 feature model which satisfies the selection criteria the best is chosen, another feature from the remaining n-2 features are added and so on. The forward fit is a sub-optimal algorithm. There is no guarantee that the final list of features chosen will be the best among the lot. The computation required for this is of 
+$n + n-1 + n-2 + ...1 = n(n+1)/2$ which is of the order of $n^{2}$. Though forward fit is a sub optimal solution it is far more computationally efficient than best fit
 
 
 ## 1.2a Forward fit - R code
@@ -200,7 +205,8 @@ coefi
 
 ## 1.2b Forward fit with Cross Validation - R code
 The Python package SFS includes N Fold Cross Validation errors for forward and backward fit
-so I decided to add this code to R. This is not available in the 
+so I decided to add this code to R. This is not available in the leaps R package, however the implementation is quite simple. Another implementation is also available at [Statistical Learning](https://lagunita.stanford.edu/courses/HumanitiesandScience/StatLearning/Winter2015/about), Prof Trevor Hastie & Prof Robert Tibesherani, Online Stanford
+2. [Applied Machine Learning in Python](https://www.coursera.org/learn/python-machin
 ```{r fig3,cache=TRUE}
 library(dplyr)
 df=read.csv("Boston.csv",stringsAsFactors = FALSE) # Data from MASS - SL
@@ -337,8 +343,8 @@ print(X.columns[b])
 ![output](fig1.png)
 
 ## 1.3 Backward Fit
-Backward fit belongs to the class of greedy algorithms which  tries to optimize the feature set selected by dropping a feature at every stage which results in the worst performance for a given criteria of Adj RSquared, Cp, BIC or AIC.  For a dataset with features f1,f2,f3...fn, the backward fit starts with the all the features f1,f2.. fn to begin with. It then pick the ML model with a n-1 eatures  by dropping the feature the inclusion of which results in the worst performance in adj Rsquared, or minimum Cp, BIC or some such criteria.  At every step 1 feature is dopped. There is guarantee that the final list of features chosen will be the best among the lot. The computation required for this is of 
-$n + n-1 + n -2 + .. 1 = n(n+1)/2$ which is of the order of $n^{2}$. Though backward fit is a sub optimal solution is far more computationally efficient than best fit
+Backward fit belongs to the class of greedy algorithms which  tries to optimize the feature set, by dropping a feature at every stage which results in the worst performance for a given criteria of Adj RSquared, Cp, BIC or AIC.  For a dataset with features f1,f2,f3...fn, the backward fit starts with the all the features f1,f2.. fn to begin with. It then pick the ML model with a n-1 features  by dropping the feature,$f_{j}$, for e.g., the inclusion of which results in the worst performance in adj Rsquared, or minimum Cp, BIC or some such criteria.  At every step 1 feature is dopped. There is no guarantee that the final list of features chosen will be the best among the lot. The computation required for this is of 
+$n + n-1 + n -2 + .. 1 = n(n+1)/2$ which is of the order of $n^{2}$. Though backward fit is a sub optimal solution it is far more computationally efficient than best fit
 
 ## 1.3a Backward fit - R code
 ```{r fig4,cache=TRUE}
@@ -462,9 +468,6 @@ idx = np.argmin(n)
 print "No of features=",idx
 #Get the features indices for the best forward fit and convert to list
 b=list(a[idx]['feature_idx'])
-print(b)
-
-print("#################################################################################")
 # Index the column names. 
 # Features from backward fit
 print("Features selected in bacward fit")
@@ -477,7 +480,7 @@ print(X.columns[b])
 
 
 ## 1.3c Sequential Floating Forward Selection (SFFS) - Python code
-The Sequential Feature search also includes 'floating' variants which include or exclude features conditionally, once they were excluded or included. These variants are included below
+The Sequential Feature search also includes 'floating' variants which include or exclude features conditionally, once they were excluded or included. The SFFS can conditionally include features which were excluded from the previous step, if it results in a better fit. This option will tend to a better solution, than plain simple SFS. These variants are included below
 ```{python }
 import numpy as np
 import pandas as pd
@@ -546,6 +549,7 @@ print(X.columns[b])
 ![output](fig3.png)
 
 ## 1.3d Sequential Floating Backward Selection (SFBS) - Python code
+The SFBS is an extension of the SBS. Here features that are excluded at any stage can be conditionally included if the resulting feature set gives a better fit.
 ```{python}
 import numpy as np
 import pandas as pd
@@ -615,11 +619,11 @@ In Linear Regression the Residual Sum of Squares (RSS) is given as
 $RSS = \sum_{i=1}^{n} (y_{i} - \beta_{0} - \sum_{j=1}^{p}\beta_jx_{ij})^{2}$
 $\sum_{i=1}^{n} (y_{i} - \beta_{0} - \sum_{j=1}^{p}\beta_jx_{ij})^{2} + \lambda \sum_{j=1}^{p}\beta^{2}$
 
-where $\lamda $ is teh regularization or tuning parameter. Increasing Lamda increases the penalty
-on the coefficients thus shrinking them. However in Ridge Regression features that do not influence the target variable will shrink closer to zero but never become zero except for very large values of $\lambda$
+where $\lambda $ is the regularization or tuning parameter. Increasing $\lambda$ increases the penalty on the coefficients thus shrinking them. However in Ridge Regression features that do not influence the target variable will shrink closer to zero but never become zero except for very large values of $\lambda$
 
 Ridge regression in R requires the 'glmnet' package
 
+## 1.4a Ridge Regression - R code
 ```{r}
 library(glmnet)
 library(dplyr)
@@ -632,13 +636,14 @@ names(df) <-c("no","crimeRate","zone","indus","charles","nox","rooms","age",
 df1 <- df %>% dplyr::select("crimeRate","zone","indus","charles","nox","rooms","age",
                             "distances","highways","tax","teacherRatio","color","status","cost")
 
-X=model.matrix(cost~.,df1)[,-1]
+# Set X and y as matrices
+X=as.matrix(df1[,1:13])
 y=df1$cost
 
 # Fit a Ridge model
 fitRidge <-glmnet(X,y,alpha=0)
 
-#Plot the model
+#Plot the model where the coefficient shrinkage is plotted vs log lambda
 plot(fitRidge,xvar="lambda",label=TRUE)
 
 # Compute the cross validation error
@@ -649,7 +654,8 @@ plot(cvRidge)
 
 ```
 
-
+## 1.4a Ridge Regression - Python code
+The coefficient shrinkage for Python can be plotted like R using Least Angle Regression model a.k.a. LARS package. This is included below
 ```{python}
 import numpy as np
 import pandas as pd
@@ -672,18 +678,17 @@ from sklearn.linear_model import Ridge
 X_train, X_test, y_train, y_test = train_test_split(X, y,
                                                    random_state = 0)
 
+# Scale the X_train and X_test
 X_train_scaled = scaler.fit_transform(X_train)
 X_test_scaled = scaler.transform(X_test)
 
+# Fit a ridge regression with alpha=20
 linridge = Ridge(alpha=20.0).fit(X_train_scaled, y_train)
 
-print('Crime dataset')
-print('ridge regression linear model intercept: {}'
-     .format(linridge.intercept_))
-print('ridge regression linear model coeff:\n{}'
-     .format(linridge.coef_))
+# Print the training R squared
 print('R-squared score (training): {:.3f}'
      .format(linridge.score(X_train_scaled, y_train)))
+# Print the test Rsquared
 print('R-squared score (test): {:.3f}'
      .format(linridge.score(X_test_scaled, y_test)))
 print('Number of non-zero features: {}'
@@ -691,23 +696,33 @@ print('Number of non-zero features: {}'
 
 trainingRsquared=[]
 testRsquared=[]
+# Plot the effect of alpha on the test Rsquared
 print('Ridge regression: effect of alpha regularization parameter\n')
+# Choose a list of alpha values
 for this_alpha in [0.001,.01,.1,0, 1, 10, 20, 50, 100, 1000]:
     linridge = Ridge(alpha = this_alpha).fit(X_train_scaled, y_train)
+    # Compute training rsquared
     r2_train = linridge.score(X_train_scaled, y_train)
+    # Compute test rsqaured
     r2_test = linridge.score(X_test_scaled, y_test)
     num_coeff_bigger = np.sum(abs(linridge.coef_) > 1.0)
     trainingRsquared.append(r2_train)
     testRsquared.append(r2_test)
+    
+# Create a dataframe
 alpha=[0.001,.01,.1,0, 1, 10, 20, 50, 100, 1000]    
 trainingRsquared=pd.DataFrame(trainingRsquared,index=alpha)
 testRsquared=pd.DataFrame(testRsquared,index=alpha)
 
+# Plot training and test R squared as a function of alpha
 df3=pd.concat([trainingRsquared,testRsquared],axis=1)
 df3.columns=['trainingRsquared','testRsquared']
 
 fig5=df3.plot()
+fig5=plt.title('Ridge training and test squared error vs Alpha')
 fig5.figure.savefig('fig5.png', bbox_inches='tight')
+
+# Plot the coefficient shrinage using the LARS package
 
 from sklearn import linear_model
 # #############################################################################
@@ -741,7 +756,12 @@ plt.savefig('fig6.png', bbox_inches='tight')
 
 ![output](fig5.png)
 ![output](fig6.png)
+# 1.5 Lasso 
+The Lasso is another form of regularization, also known as L1 regularization. Unlike the Ridge Regression where the coefficients of features which do not influence the target tend to zero, in the lasso regualrization the coefficients become 0. The general form of Lasso is as follows
+$\sum_{i=1}^{n} (y_{i} - \beta_{0} - \sum_{j=1}^{p}\beta_jx_{ij})^{2} + \lambda \sum_{j=1}^{p}|\beta|\\$
 
+
+## 1.5 a Lasso regularization - R code
 ```{r}
 library(glmnet)
 library(dplyr)
@@ -751,14 +771,23 @@ names(df) <-c("no","crimeRate","zone","indus","charles","nox","rooms","age",
 df1 <- df %>% dplyr::select("crimeRate","zone","indus","charles","nox","rooms","age",
                             "distances","highways","tax","teacherRatio","color","status","cost")
 
-X=model.matrix(cost~.,df1)[,-1]
+# Set X and y as matrices
+X=as.matrix(df1[,1:13])
 y=df1$cost
+
+# Fit the lasso model
 fitLasso <- glmnet(X,y)
+# Plot the coefficient shrinkage as a function of log(lambda)
 plot(fitLasso,xvar="lambda",label=TRUE)
+
+# Compute the cross validation error (10 fold)
 cvLasso=cv.glmnet(X,y,alpha=0)
+# Plot the cross validation error
 plot(cvLasso)
 ```
 
+
+## 1.5 b Lasso regularization - Python code
 
 ```{python}
 import numpy as np
@@ -786,11 +815,6 @@ X_test_scaled = scaler.transform(X_test)
 
 linlasso = Lasso(alpha=0.1, max_iter = 10).fit(X_train_scaled, y_train)
 
-
-print('lasso regression linear model intercept: {}'
-     .format(linlasso.intercept_))
-print('lasso regression linear model coeff:\n{}'
-     .format(linlasso.coef_))
 print('Non-zero features: {}'
      .format(np.sum(linlasso.coef_ != 0)))
 print('R-squared score (training): {:.3f}'
@@ -827,6 +851,7 @@ df3=pd.concat([trainingRsquared,testRsquared],axis=1)
 df3.columns=['trainingRsquared','testRsquared']
 
 fig7=df3.plot()
+fig7=plt.title('LASSO training and test squared error vs Alpha')
 fig7.figure.savefig('fig7.png', bbox_inches='tight')
 
 
@@ -848,6 +873,9 @@ plt.savefig('fig8.png', bbox_inches='tight')
 ```
 
 ![output](fig7.png)
+
+## 1.5c Lasso coefficient shrinkage - Python code
+To plot the coefficient shrinkage for Lasso the Least Angle Regression model a.k.a. LARS package. This is shown below
 ```{python}
 import numpy as np
 import pandas as pd
