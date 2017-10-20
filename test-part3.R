@@ -1,7 +1,6 @@
 source('RFunctions-1.R')
 #Boston
 library(leaps)
-library(boot)
 library(dplyr)
 df=read.csv("Boston.csv",stringsAsFactors = FALSE) # Data from MASS - SL
 names(df) <-c("no","crimeRate","zone","indus","charles","nox","rooms","age",

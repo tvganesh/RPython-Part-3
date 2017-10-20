@@ -1,33 +1,87 @@
 ---
-title: "RandPython-Part3"
+title: "Practical Machine Learning with R and Python - Part 3 "
 author: "Tinniam V Ganesh"
 date: "October 16, 2017"
 output: html_document
 ---
 
-# 1 Best fit - R code
+In this post 'Practical Machine Learning with R and Python - Part 3' I discuss 'Feature Selection' methods. This post is a continuation of my 2 earlier posts
 
+1.[Practical Machine Learning with R and Python - Part 1](https://gigadom.wordpress.com/2017/10/06/practical-machine-learning-with-r-and-python-part-1/)
+2.[Practical Machine Learning with R and Python - Part 1](https://gigadom.wordpress.com/2017/10/13/practical-machine-learning-with-r-and-python-part-2/)
+
+
+Usually there will be a large number of predictors for a target variable. It is likely that not all the predictor or feature variables will have an impact on the output. Hence it is becomes necessary to choose all those features which influence the output variable. The techiniques that are used to simplify the machine learning model while removing features which
+have little or no impact are 
+
+- Best fit 
+- Forward fit 
+- Backward fit
+- Ridge Regression or L2 regularization
+- Lasso or L1 regularization
+
+All these methods remove those features which do not have a great influence on the output.
+# 1.1a Linear Regression - R code
+For a dataset with features f1,f2,f3...fn, the best fit chooses all combinations of features and creates separate ML models for each of the combinations. The best fit algotithm then  uses some filtering  criteria based on Adj Rsquared, Cp or AIC to pick out the best model among all models.
+Since the Best Fit approach searches the entire solumn space it is computationally infeasible. The number of models that have to be searched work to $latex 2^{p}$. This can be shown as follows
+
+There are $latex C_{1}$ ways to choose single feature ML models among n features, $latex C_{2}$ ways to choose 2 feature models among n models and so on, or
+
+$C_{1} + C_{2} +.... + C_{n}$= Total number of models in Best Fit
+Since
+$ (1+x)^{n} = 1+C_{1}x + C_{2} +... + C_{n}$ and when x=1 this becomes
+$2^{n} = 1+C_{1}x + C_{2} +... + C_{n}$
+
+Hence there are $2^{n}$ models to search amongs in Best Fit. For 10 features this is 1000 models and for 40 features this becoms $2^{40}$ which almost 1 trillion. Usually there are datasets with 1000 or maybe even 100000 features and Best fit becomes computationally infeasible.
+
+
+Anyways I have included the Best Fit approach as I use the Boston crime datasets which is available both the MASS package in R and Sklearn in Python.
+
+Perform a simple Linear Regression Fit. By looking at the p-values of the features it can be 
+seen that 'indus' and 'age' features have high p-values and are not significant
+
+# 1.1a Linear Regression - R code
 ```{r fig1,cache=TRUE}
-library(leaps)
-library(boot)
 source('RFunctions-1.R')
+#Read the Boston crime data
 df=read.csv("Boston.csv",stringsAsFactors = FALSE) # Data from MASS - SL
+# Rename the columns
 names(df) <-c("no","crimeRate","zone","indus","charles","nox","rooms","age",
               "distances","highways","tax","teacherRatio","color","status","cost")
+# Select specific columns
 df1 <- df %>% dplyr::select("crimeRate","zone","indus","charles","nox","rooms","age",
                             "distances","highways","tax","teacherRatio","color","status","cost")
 dim(df1)
-# Linear Regressiob fit
+# Linear Regression fit
 fit <- lm(cost~. ,data=df1)
 summary(fit)
 
+```
+
+# 1.1b Best Fit - R code
+
+
+```{r}
+library(leaps)
+source('RFunctions-1.R')
+#Read the Boston crime data
+df=read.csv("Boston.csv",stringsAsFactors = FALSE) # Data from MASS - SL
+# Rename the columns
+names(df) <-c("no","crimeRate","zone","indus","charles","nox","rooms","age",
+              "distances","highways","tax","teacherRatio","color","status","cost")
+# Select specific columns
+df1 <- df %>% dplyr::select("crimeRate","zone","indus","charles","nox","rooms","age",
+                            "distances","highways","tax","teacherRatio","color","status","cost")
+
 # Perform a best fit
 bestFit=regsubsets(cost~.,df1,nvmax=13)
+
+# Generate a summary of the fit
 bfSummary=summary(bestFit)
 
 # Plot the Residual Sum of Squares vs number of variables 
 plot(bfSummary$rss,xlab="Number of Variables",ylab="RSS",type="l")
-# Gives the index of the minimum value
+# Get the index of the minimum value
 a=which.min(bfSummary$rss)
 # Mark this in red
 points(a,bfSummary$rss[a],col="red",cex=2,pch=20)
@@ -47,6 +101,7 @@ plot(bfSummary$bic,xlab="Number of Variables",ylab="BIC",type='l')
 c=which.min(bfSummary$bic)
 points(c,bfSummary$bic[c],col="red",cex=2,pch=20)
 
+# R has some other good plots for best fit
 plot(bestFit,scale="r2",main="Rsquared vs No Features")
 plot(bestFit,scale="Cp",main="Cp vs NoFeatures")
 plot(bestFit,scale="bic",main="BIC vs Features")
@@ -54,6 +109,7 @@ plot(bestFit,scale="bic",main="BIC vs Features")
 ```
 
 # Best fit (Exhaustive Search ) - Python code
+The Python package for performing a Best Fit is the Exhaustive Feature Selector.
 ```{python cache=TRUE,message=FALSE,warning=FALSE}
 import numpy as np
 import pandas as pd
@@ -62,13 +118,19 @@ import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from mlxtend.feature_selection import ExhaustiveFeatureSelector as EFS
+
+# Read the Boston crime data
 df = pd.read_csv("Boston.csv",encoding = "ISO-8859-1")
+
 #Rename the columns
 df.columns=["no","crimeRate","zone","indus","chasRiver","NO2","rooms","age",
               "distances","idxHighways","taxRate","teacherRatio","color","status","cost"]
+# Set X and y 
 X=df[["crimeRate","zone","indus","chasRiver","NO2","rooms","age",
               "distances","idxHighways","taxRate","teacherRatio","color","status"]]
 y=df['cost']
+
+# Perform an Exhaustive Search. The EFS and SFS packages use 'neg_mean_squared_error'. The 'mean_squared_error' seems to have been deprecated. I think this is just the MSE with the a negative sign.
 lr = LinearRegression()
 efs1 = EFS(lr, 
            min_features=1,
@@ -78,8 +140,11 @@ efs1 = EFS(lr,
            cv=5)
 
 
+# Create a efs fit
 efs1 = efs1.fit(X.as_matrix(), y.as_matrix())
+
 print('Best negtive mean squared error: %.2f' % efs1.best_score_)
+# Print the IDX of the best features 
 print('Best subset:', efs1.best_idx_)
 ```
 
