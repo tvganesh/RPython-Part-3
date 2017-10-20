@@ -21,7 +21,7 @@ have little or no impact are
 - Lasso or L1 regularization
 
 All these methods remove those features which do not have a great influence on the output.
-# 1.1a Linear Regression - R code
+# 1.1 Best Fit
 For a dataset with features f1,f2,f3...fn, the best fit chooses all combinations of features and creates separate ML models for each of the combinations. The best fit algotithm then  uses some filtering  criteria based on Adj Rsquared, Cp or AIC to pick out the best model among all models.
 Since the Best Fit approach searches the entire solumn space it is computationally infeasible. The number of models that have to be searched work to $latex 2^{p}$. This can be shown as follows
 
@@ -58,9 +58,9 @@ summary(fit)
 
 ```
 
-# 1.1b Best Fit - R code
+# 1.1a Best Fit - R code
 
-
+The Best Fit requires the 'leaps' R package
 ```{r}
 library(leaps)
 source('RFunctions-1.R')
@@ -108,7 +108,7 @@ plot(bestFit,scale="bic",main="BIC vs Features")
 
 ```
 
-# Best fit (Exhaustive Search ) - Python code
+## 1.1b Best fit (Exhaustive Search ) - Python code
 The Python package for performing a Best Fit is the Exhaustive Feature Selector.
 ```{python cache=TRUE,message=FALSE,warning=FALSE}
 import numpy as np
@@ -148,22 +148,35 @@ print('Best negtive mean squared error: %.2f' % efs1.best_score_)
 print('Best subset:', efs1.best_idx_)
 ```
 
+# 1.2 Forward fit
+Forward fit is a greedy algorithm that tries to optimize the feature selected  that minimizes the selection criteria (adj Rsqaured, Cp, AIC or BIC) at every step. For a dataset with features f1,f2,f3...fn, the forward fit starts with the NULL set. It then pick the ML model with a single feature from n features  which has the highest adj Rsquared, or minimum Cp, BIC or some such criteria.  After picking the 1 feature from n which satisfies the criteria the most, the next feature from the remaining n-1 features is chosen. When the 2 feature model with satisfied the selection criteria the best is chosen, another feature from the remaining n-2 features are added and so on. The forward fit is a sub-optimal algorithm. There is guarantee that the final list of features chosen will be the best among the lot. The computation required for this is of 
+$n + n-1 + n-2 + ...1 = n(n+1)/2$ which is of the order of $n^{2}$. Though forward fit is a sub optimal solution is far more computationally efficient than best fit
 
-# Forward fit - R code
+
+## 1.2a Forward fit - R code
 Forward fit in R determines that 11 features are required for the best fit. The features are shown below
+
 ```{r fig2,cache=TRUE}
+library(leaps)
+# Read the data
 df=read.csv("Boston.csv",stringsAsFactors = FALSE) # Data from MASS - SL
+# Rename the columns
 names(df) <-c("no","crimeRate","zone","indus","charles","nox","rooms","age",
               "distances","highways","tax","teacherRatio","color","status","cost")
 
 # Select columns
 df1 <- df %>% dplyr::select("crimeRate","zone","indus","charles","nox","rooms","age",
                      "distances","highways","tax","teacherRatio","color","status","cost")
+
+#Split as training and test 
 train_idx <- trainTestSplit(df1,trainPercent=75,seed=5)
 train <- df1[train_idx, ]
 test <- df1[-train_idx, ]
+
+# Find the best forward fit
 fitFwd=regsubsets(cost~.,data=train,nvmax=13,method="forward")
 
+# Compute the MSE
 valErrors=rep(NA,13)
 test.mat=model.matrix(cost~.,data=test)
 for(i in 1:13){
@@ -172,10 +185,12 @@ for(i in 1:13){
     valErrors[i]=mean((test$cost-pred)^2)
 }
 
+# Plot the Residual Sum of Squares
 plot(valErrors,xlab="Number of Variables",ylab="Validation Error",type="l")
 # Gives the index of the minimum value
 a<-which.min(valErrors)
 print(a)
+# Highlight the smallest value
 points(c,valErrors[a],col="blue",cex=2,pch=20)
 
 #Print the 11 ccoefficients
@@ -183,7 +198,9 @@ coefi=coef(fitFwd,id=i)
 coefi
 ```
 
-
+## 1.2b Forward fit with Cross Validation - R code
+The Python package SFS includes N Fold Cross Validation errors for forward and backward fit
+so I decided to add this code to R. This is not available in the 
 ```{r fig3,cache=TRUE}
 library(dplyr)
 df=read.csv("Boston.csv",stringsAsFactors = FALSE) # Data from MASS - SL
@@ -205,8 +222,9 @@ for(i in 1:nvmax){
     # Create the rows which fall into different folds from 1..noFolds
     folds = sample(1:noFolds, nrow(df1), replace=TRUE) 
     cv<-0
+    # Loop through the folds
     for(j in 1:noFolds){
-        # The training is all rows for which the row is != j 
+        # The training is all rows for which the row is != j (k-1 folds -> training)
         train <- df1[folds!=j,]
         # The rows which have j as the index become the test set
         test <- df1[folds==j,]
@@ -221,6 +239,7 @@ for(i in 1:nvmax){
         pred=test.mat[,names(coefi)]%*%coefi
         # Compute mean squared error
         rss=mean((test$cost - pred)^2)
+        # Add all the Cross Validation errors
         cv=cv+rss
     }
     # Compute the average of MSE for K folds for number of features 'i'
@@ -243,9 +262,10 @@ coefi
 
 ```
 
-# Forward fit - Python code
+## 1.2b Forward fit - Python code
 The Cross validation error for SFS in Sklearn is negative, possibly because it computes
-the 'neg_mean_squared_error'
+the 'neg_mean_squared_error' I have taken the -ve of this neg_mean_squared_error. I think this
+would give mean_squared_error.
 ```{python }
 import numpy as np
 import pandas as pd
@@ -268,18 +288,22 @@ X=df[["crimeRate","zone","indus","chasRiver","NO2","rooms","age",
               "distances","idxHighways","taxRate","teacherRatio","color","status"]]
 y=df['cost']
 lr = LinearRegression()
-
+# Create a forward fit model
 sfs = SFS(lr, 
           k_features=(1,13), 
-          forward=True, 
+          forward=True, # Forward fit
           floating=False, 
           scoring='neg_mean_squared_error',
           cv=5)
 
+# Fit this on the data
 sfs = sfs.fit(X.as_matrix(), y.as_matrix())
+# Get all the details of the forward fits
 a=sfs.get_metric_dict()
 n=[]
 o=[]
+
+# Compute the mean cross validation scores
 for i in np.arange(1,13):
     n.append(-np.mean(a[i]['cv_scores'])) 
    
@@ -288,7 +312,7 @@ for i in np.arange(1,13):
 m=np.arange(1,13)
 # Get the index of the minimum CV score
 
-
+# Plot the CV scores vs the number of features
 fig1=plt.plot(m,n)
 fig1=plt.title('Mean CV Scores')
 fig1.figure.savefig('fig1.png', bbox_inches='tight')
@@ -311,7 +335,9 @@ print(X.columns[b])
 
 ![output](fig1.png)
 
-
+## 1.3 Backward Fit
+Backward fit belongs to the class of greedy algorithms which  tries to optimize the feature set selected by dropping a feature at every stage which results in the worst performance for a given criteria of Adj RSquared, Cp, BIC or AIC.  For a dataset with features f1,f2,f3...fn, the backward fit starts with the all the features f1,f2.. fn to begin with. It then pick the ML model with a n-1 eatures  by dropping the feature the inclusion of which results in the worst performance in adj Rsquared, or minimum Cp, BIC or some such criteria.  At every step 1 feature is dopped. There is guarantee that the final list of features chosen will be the best among the lot. The computation required for this is of 
+$n + n-1 + n -2 + .. 1 = n(n+1)/2$ which is of the order of $n^{2}$. Though backward fit is a sub optimal solution is far more computationally efficient than best fit
 # Backward fit - R code
 ```{r fig4,cache=TRUE}
 library(dplyr)
